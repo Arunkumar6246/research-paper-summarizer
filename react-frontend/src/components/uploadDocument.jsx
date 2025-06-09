@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from './modal';
 
-function UploadDocument({ onUpload }) {
+function UploadDocument({ onUpload, onUploadComplete }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -29,6 +29,10 @@ function UploadDocument({ onUpload }) {
       setIsUploading(true);
       try {
         await onUpload(file);
+        // Signal that upload is complete to refresh the paper list
+        if (onUploadComplete) {
+          onUploadComplete();
+        }
       } finally {
         setIsUploading(false);
         setFile(null);

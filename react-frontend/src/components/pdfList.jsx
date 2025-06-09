@@ -3,10 +3,10 @@ import { useEffect } from 'react';
 function PdfList({ papers, onSelect, selectedPaper }) {
   // Auto-select first paper if papers exist and none is selected
   useEffect(() => {
-    if (papers.length > 0 && !selectedPaper) {
+    if (papers.length > 0) {
       onSelect(papers[0]);
     }
-  }, [papers, selectedPaper, onSelect]);
+  }, [papers,  onSelect]);
 
   return (
     <div className="w-full mt-8">

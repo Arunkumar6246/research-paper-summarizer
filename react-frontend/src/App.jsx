@@ -9,9 +9,7 @@ function App() {
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [summaries, setSummaries] = useState([]);
 
-  // Fetch papers on component mount
-  useEffect(() => {
-    const fetchPapers = async () => {
+  const fetchPapers = async () => {
       try {
         const response = await fetch('http://localhost:8000/api/paper/get_all_papers');
         if (response.ok) {
@@ -22,7 +20,9 @@ function App() {
         console.error('Error fetching papers:', error);
       }
     };
-
+  // Fetch papers on component mount
+  useEffect(() => {
+  
     fetchPapers();
   }, []);
 
@@ -67,7 +67,7 @@ function App() {
           Research Paper Summarizer
         </h1>
         
-        <UploadDocument onUpload={handleUpload} />
+        <UploadDocument onUpload={handleUpload} onUploadComplete={fetchPapers} />
         
         <PdfList 
           papers={papers} 
