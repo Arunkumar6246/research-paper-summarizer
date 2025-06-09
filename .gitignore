@@ -1,0 +1,34 @@
+#------------- Frontend ignores ---------------------
+# dependencies
+react-frontend/node_modules
+react-frontend/.pnp
+react-frontend/.pnp.js
+
+# testing
+react-frontend/coverage
+
+# production
+react-frontend/build
+
+# misc
+react-frontend/.DS_Store
+react-frontend/.env.local
+react-frontend/.env.development.local
+react-frontend/.env.test.local
+react-frontend/.env.production.local
+
+react-frontend/npm-debug.log*
+react-frontend/yarn-debug.log*
+react-frontend/yarn-error.log*
+
+react-frontend/# IDE
+react-frontend/.idea/
+react-frontend/.vscode/
+react-frontend/*.swp
+react-frontend/*.swo
+
+# environment variables
+react-frontend/.env    
+
+
+#------------- Backend ignores ---------------------
