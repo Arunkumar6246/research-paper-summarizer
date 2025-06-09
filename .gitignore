@@ -46,3 +46,6 @@ __pycache__/
 *.mako.pyc
 *.mako.pyo
 .mako_modules/
+
+
+.env

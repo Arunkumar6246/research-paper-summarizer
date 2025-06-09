@@ -3,6 +3,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from endpoints import paper_endpoints, summary_endpoints
+from dotenv import load_dotenv
+
+load_dotenv()  # Add this at the beginning of your main.py file
 
 
 app = FastAPI(title="Research Paper Summarizer")
