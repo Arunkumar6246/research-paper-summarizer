@@ -94,7 +94,7 @@ def process_paper_sections(db: Session, paper_id: int, file_path: str):
         logger.error(f"Error in process_paper_sections for paper ID {paper_id}: {str(e)}")
 
 @paper_router.post("/upload", response_model=PaperResponse)
-def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
+def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
         logger.info(f"Uploading file: {file.filename}")
         
@@ -113,7 +113,7 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db), ba
         logger.info(f"Paper saved to database with ID: {paper.id}")
         
         # Process sections and generate summaries in the background
-        background_tasks.add_task(process_paper_sections, db, paper.id, file_path)
+        process_paper_sections(db, paper.id, file_path)
         logger.info(f"Background task added for processing paper ID: {paper.id}")
         
         return paper
@@ -132,8 +132,8 @@ def view_pdf(paper_id: int, db: Session = Depends(get_db)):
     return FileResponse(paper.file_path)
 
 @paper_router.get("/get_all_papers", response_model=List[PaperResponse])
-def read_papers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    papers = PaperService.get_all_papers(db, skip=skip, limit=limit)
+def read_papers( db: Session = Depends(get_db)):
+    papers = PaperService.get_all_papers(db)
     return papers
 
 @paper_router.get("/{paper_id}", response_model=PaperResponse)

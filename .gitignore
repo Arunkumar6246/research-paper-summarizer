@@ -47,5 +47,6 @@ __pycache__/
 *.mako.pyo
 .mako_modules/
 
+delete query.sqlite3-query
 
 .env

@@ -1,4 +1,13 @@
+import { useEffect } from 'react';
+
 function PdfList({ papers, onSelect, selectedPaper }) {
+  // Auto-select first paper if papers exist and none is selected
+  useEffect(() => {
+    if (papers.length > 0 && !selectedPaper) {
+      onSelect(papers[0]);
+    }
+  }, [papers, selectedPaper, onSelect]);
+
   return (
     <div className="w-full mt-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Uploaded Papers</h2>

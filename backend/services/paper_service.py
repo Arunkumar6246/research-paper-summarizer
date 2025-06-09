@@ -17,9 +17,9 @@ class PaperService:
         return db_paper
     
     @staticmethod
-    def get_all_papers(db: Session, skip: int = 0, limit: int = 100):
+    def get_all_papers(db: Session):
         """Get all papers with pagination"""
-        return db.query(Paper).offset(skip).limit(limit).all()
+        return db.query(Paper).order_by(Paper.id.desc()).all()
     
     @staticmethod
     def get_paper(db: Session, paper_id: int):
