@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from endpoints import paper_endpoints
+from endpoints import paper_endpoints, summary_endpoints
 
 
 app = FastAPI(title="Research Paper Summarizer")
@@ -21,7 +21,9 @@ def read_root():
     return {"Hello": "Research Paper Summarizer API"}
 
 # Add your API endpoints here
-app.include_router(paper_endpoints.paper_router, prefix="/papers", tags=["papers"])
+app.include_router(paper_endpoints.paper_router, prefix="api/paper")
+app.include_router(summary_endpoints.summary_router, prefix="api/summary")
+
 
 
 if __name__ == "__main__":
