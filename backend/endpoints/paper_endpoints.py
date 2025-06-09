@@ -1,6 +1,7 @@
 # endpoints/paper_endpoints.py
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
+from fastapi.responses import FileResponse
 import os
 from database import get_db
 from services.paper_service import PaperService
@@ -72,6 +73,16 @@ def upload_paper(file: UploadFile = File(...),  db: Session = Depends(get_db)):
     process_paper_sections(db, paper.id, file_path)
     
     return paper
+
+@paper_router.get("/{paper_id}/view")
+def view_pdf(paper_id: int, db: Session = Depends(get_db)):
+    """Serve the PDF file for viewing."""
+    paper = PaperService.get_paper(db, paper_id=paper_id)
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    
+    # Return the file for viewing
+    return FileResponse(paper.file_path)
 
 @paper_router.get("/get_all_papers", response_model=List[PaperResponse])
 def read_papers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

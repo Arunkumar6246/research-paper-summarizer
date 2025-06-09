@@ -49,7 +49,6 @@ function App() {
     setSelectedPaper(paper);
     
     try {
-      // Fixed the typo in the API endpoint URL
       const response = await fetch(`http://localhost:8000/api/summary/paper/${paper.id}`);
       
       if (response.ok) {
@@ -77,10 +76,12 @@ function App() {
         />
         
         {selectedPaper && (
-          <SummaryTable 
-            summaries={summaries} 
-            paperPath={`http://localhost:8000/uploads/${selectedPaper.filename}`} 
-          />
+          <div className="mt-8">
+            <SummaryTable 
+              summaries={summaries} 
+              paperId={selectedPaper.id}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
-function SummaryTable({ summaries, paperPath }) {
+// components/summaryTable.jsx
+function SummaryTable({ summaries, paperId }) {
   return (
-    <div className="w-full mt-8">
+    <div className="w-full">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Paper Summaries</h2>
       {summaries.length > 0 ? (
         <div className="overflow-x-auto">
@@ -19,7 +20,7 @@ function SummaryTable({ summaries, paperPath }) {
                   <td className="py-3 px-4 text-sm text-gray-600">{summary.summary_text}</td>
                   <td className="py-3 px-4">
                     <a
-                      href={`${paperPath}#page=${summary.page}`}
+                      href={`http://localhost:8000/api/paper/${paperId}/view#page=${summary.page}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-500 hover:text-blue-700"
