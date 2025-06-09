@@ -15,6 +15,7 @@ function App() {
         if (response.ok) {
           const data = await response.json();
           setPapers(data);
+          setSelectedPaper(null);
         }
       } catch (error) {
         console.error('Error fetching papers:', error);
