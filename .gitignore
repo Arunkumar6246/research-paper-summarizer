@@ -32,3 +32,17 @@ react-frontend/.env
 
 
 #------------- Backend ignores ---------------------
+venv
+virtual
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Mako template files
+*.mako
+*.mako.py
+*.mako.pyc
+*.mako.pyo
+.mako_modules/
