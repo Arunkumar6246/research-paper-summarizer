@@ -11,7 +11,7 @@ from typing import List
 
 paper_router = APIRouter()
 
-async def process_paper_sections(db: Session, paper_id: int, file_path: str):
+def process_paper_sections(db: Session, paper_id: int, file_path: str):
     # Extract sections and subsections
     sections = PaperService.extract_all_sections_and_subsections(file_path)
     
@@ -26,11 +26,11 @@ async def process_paper_sections(db: Session, paper_id: int, file_path: str):
         page = section_data["page"] or 1
         
         # Generate summary using LLM
-        summary_text = await llm.generate_summary(section_text)
+        summary_text = llm.generate_summary(section_text)
         
         # Save the section summary
         SummaryService.save_summary(
-            db=db,
+            session=db,
             paper_id=paper_id,
             section_title=section_title,
             summary_text=summary_text,
@@ -44,11 +44,11 @@ async def process_paper_sections(db: Session, paper_id: int, file_path: str):
             sub_page = subsection["page"]
             
             # Generate summary for subsection
-            sub_summary = await llm.generate_summary(sub_text)
+            sub_summary = llm.generate_summary(sub_text)
             
             # Save the subsection summary
             SummaryService.save_summary(
-                db=db,
+                session=db,
                 paper_id=paper_id,
                 section_title=sub_title,
                 summary_text=sub_summary,
@@ -56,7 +56,7 @@ async def process_paper_sections(db: Session, paper_id: int, file_path: str):
             )
 
 @paper_router.post("/upload", response_model=PaperResponse)
-async def upload_paper(file: UploadFile = File(...),  db: Session = Depends(get_db), background_tasks: BackgroundTasks = BackgroundTasks()):
+def upload_paper(file: UploadFile = File(...),  db: Session = Depends(get_db)):
     # Save the uploaded file
     upload_dir = "uploads"
     os.makedirs(upload_dir, exist_ok=True)
@@ -69,7 +69,7 @@ async def upload_paper(file: UploadFile = File(...),  db: Session = Depends(get_
     paper = PaperService.save_paper(db, file_path, file.filename)
     
     # Process sections and generate summaries in the background
-    background_tasks.add_task(process_paper_sections, db, paper.id, file_path)
+    process_paper_sections(db, paper.id, file_path)
     
     return paper
 

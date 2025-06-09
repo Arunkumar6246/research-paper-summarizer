@@ -24,8 +24,8 @@ def read_root():
     return {"Hello": "Research Paper Summarizer API"}
 
 # Add your API endpoints here
-app.include_router(paper_endpoints.paper_router, prefix="api/paper")
-app.include_router(summary_endpoints.summary_router, prefix="api/summary")
+app.include_router(paper_endpoints.paper_router, prefix="/api/paper")
+app.include_router(summary_endpoints.summary_router, prefix="/api/summary")
 
 
 

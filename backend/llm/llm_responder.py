@@ -9,7 +9,7 @@ class LLMResponder:
         # Use the correct model name for the current API version
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 
-    async def generate_summary(self, text: str) -> str:
+    def generate_summary(self, text: str) -> str:
         prompt = f"""Please provide a concise summary of the following research paper section. 
         Focus on the main points and key findings:
 
