@@ -10,7 +10,7 @@ class LLMResponder:
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def generate_summary(self, text: str) -> str:
-        prompt = f"""Please provide a concise summary of the following research paper section. 
+        prompt = f"""Summarize this research paper section in 2 sentences. 
         Focus on the main points and key findings:
 
         {text}
