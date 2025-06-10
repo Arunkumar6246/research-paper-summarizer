@@ -35,11 +35,7 @@ function SummaryTable({ summaries, paperId, isProcessing, processingProgress, pr
         </div>
       )}
       
-      {!isProcessing && processingMessage && (
-        <div className="mb-4 p-2 bg-green-100 border-l-4 border-green-500 text-green-700">
-          {processingMessage}
-        </div>
-      )}
+
       
       {validSummaries.length > 0 ? (
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto" ref={tableRef}>
