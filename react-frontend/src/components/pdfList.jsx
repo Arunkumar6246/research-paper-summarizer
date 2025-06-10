@@ -19,6 +19,12 @@ function PdfList({ papers, onSelect, selectedPaper }) {
     return `${name.substring(0, 10)}...${extension}`;
   };
 
+  // Format date to a readable string
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className="w-full mt-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Uploaded Papers</h2>
@@ -51,6 +57,9 @@ function PdfList({ papers, onSelect, selectedPaper }) {
               <div className="relative">
                 <p className="text-sm font-medium text-center w-full">
                   {formatFilename(paper.filename)}
+                </p>
+                <p className="text-xs text-gray-500 text-center mt-1">
+                  {paper.upload_date ? formatDate(paper.upload_date) : "No date"}
                 </p>
                 {hoveredPaper === paper.id && (
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10">

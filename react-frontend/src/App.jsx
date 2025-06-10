@@ -3,6 +3,7 @@ import './assets/css/style.css';
 import UploadDocument from './components/uploadDocument';
 import PdfList from './components/pdfList';
 import SummaryTable from './components/summaryTable';
+import { API_URL } from './config';
 
 function App() {
   const [papers, setPapers] = useState([]);
@@ -11,7 +12,7 @@ function App() {
 
   const fetchPapers = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/paper/get_all_papers');
+        const response = await fetch(`${API_URL}/paper/get_all_papers`);
         if (response.ok) {
           const data = await response.json();
           setPapers(data);
@@ -23,7 +24,6 @@ function App() {
     };
   // Fetch papers on component mount
   useEffect(() => {
-  
     fetchPapers();
   }, []);
 
@@ -32,7 +32,7 @@ function App() {
     formData.append('file', file);
     
     try {
-      const response = await fetch('http://localhost:8000/api/paper/upload', {
+      const response = await fetch(`${API_URL}/paper/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -50,7 +50,7 @@ function App() {
     setSelectedPaper(paper);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/summary/paper/${paper.id}`);
+      const response = await fetch(`${API_URL}/summary/paper/${paper.id}`);
       
       if (response.ok) {
         const data = await response.json();

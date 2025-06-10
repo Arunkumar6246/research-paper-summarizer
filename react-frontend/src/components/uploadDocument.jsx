@@ -46,20 +46,20 @@ function UploadDocument({ onUpload, onUploadComplete }) {
 
   return (
     <div className="flex justify-center items-center w-full">
-      <div className="w-full max-w-2xl p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">Upload Research Paper</h2>
+      <div className="w-full max-w-2xl p-4 bg-white rounded-lg shadow-md">
+        <h2 className="text-lg font-semibold text-gray-800 mb-2 text-center">Upload Research Paper</h2>
         
         {isUploading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-lg font-medium text-gray-700">Processing your paper...</p>
-            <p className="text-sm text-gray-500 mt-2">
-              We're extracting sections and generating summaries. This may take a minute.
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+            <p className="text-base font-medium text-gray-700">Processing your paper...</p>
+            <p className="text-xs text-gray-500 mt-1">
+              We're extracting sections and generating summaries.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
               <input
                 type="file"
                 accept=".pdf"
@@ -83,19 +83,19 @@ function UploadDocument({ onUpload, onUploadComplete }) {
                   </div>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-2">or drag and drop here</p>
+              <p className="text-xs text-gray-500 mt-1">or drag and drop here</p>
             </div>
             
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-2 rounded text-xs">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-4 w-4 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    Note: The system will automatically extract sections from your research paper and generate summaries for each section. Only PDF files are accepted.
+                <div className="ml-2">
+                  <p className="text-xs text-blue-700">
+                    Note: The system will automatically extract sections and generate summaries. Only PDF files are accepted.
                   </p>
                 </div>
               </div>
@@ -104,7 +104,7 @@ function UploadDocument({ onUpload, onUploadComplete }) {
             <button
               type="submit"
               disabled={!file}
-              className={`w-full py-2 px-4 rounded-md ${
+              className={`w-full py-1.5 px-4 rounded-md ${
                 file
                   ? "bg-blue-500 hover:bg-blue-600 text-white"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
