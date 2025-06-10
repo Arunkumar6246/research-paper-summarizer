@@ -187,6 +187,11 @@ class LLMResponder:
     @staticmethod
     def process_paper_sections(db: Session, paper_id: int, file_path: str):
         try:
+            """ 
+            Process the paper sections and save them to the database.
+            This function is called after the paper is uploaded and processed.
+            
+            """
             logger.info(f"Starting processing for paper ID: {paper_id}")
             
             summaries = LLMResponder.summarize_research_paper(file_path)

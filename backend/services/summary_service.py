@@ -6,14 +6,11 @@ from sqlalchemy.orm import Session
 
 class SummaryService:
     @staticmethod
-    def save_summary(
-        session: Session, 
-        paper_id: int, 
-        section_title: str, 
-        summary_text: str, 
-        page: int = 1
-    ) -> Summary:
-        """Save a summary to the database"""
+    def save_summary(session: Session, paper_id: int, section_title: str,
+                    summary_text: str, page: int = 1) -> Summary:
+        
+        """Save a summary to the database """
+
         summary = Summary(
             paper_id=paper_id,
             section_title=section_title,

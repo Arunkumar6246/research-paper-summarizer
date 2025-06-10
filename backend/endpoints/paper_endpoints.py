@@ -6,9 +6,12 @@ import os
 import logging
 from database import get_db
 from services.paper_service import PaperService
-from schemas.paper_schema import PaperResponse
 from typing import List
 from services.llm_responder_service import LLMResponder
+from pydantic import BaseModel
+from datetime import datetime
+
+
 
 
 logging.basicConfig(
@@ -24,8 +27,37 @@ logger = logging.getLogger(__name__)
 paper_router = APIRouter()
 
 
+# Pydantic models
+class PaperResponse(BaseModel):
+    id: int
+    upload_date: datetime
+    filename: str
+    file_path: str
+
+    class Config:
+        from_attributes = True
+
+
+# ---------------Endpoints--------------
+
 @paper_router.post("/upload", response_model=PaperResponse)
 def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """
+    Upload a PDF research paper.
+    
+    This endpoint accepts a PDF file, saves it to the server, stores its metadata in the database,
+    and initiates the process of extracting sections and generating summaries.
+    
+    Parameters:
+    - file: The PDF file to upload
+    - db: Database session dependency
+    
+    Returns:
+    - PaperResponse: The saved paper's metadata
+    
+    Raises:
+    - HTTPException(500): If there's an error during upload or processing
+    """
     try:
         logger.info(f"Uploading file: {file.filename}")
         
@@ -52,7 +84,22 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
     
 @paper_router.get("/{paper_id}/view")
 def view_pdf(paper_id: int, db: Session = Depends(get_db)):
-    """Serve the PDF file for viewing."""
+    """
+    Serve the PDF file for viewing.
+    
+    This endpoint retrieves a PDF file from storage and serves it directly to the client
+    for viewing in the browser.
+    
+    Parameters:
+    - paper_id: ID of the paper to view
+    - db: Database session dependency
+    
+    Returns:
+    - FileResponse: The PDF file for viewing
+    
+    Raises:
+    - HTTPException(404): If the paper is not found
+    """
     paper = PaperService.get_paper(db, paper_id=paper_id)
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
@@ -61,12 +108,38 @@ def view_pdf(paper_id: int, db: Session = Depends(get_db)):
     return FileResponse(paper.file_path)
 
 @paper_router.get("/get_all_papers", response_model=List[PaperResponse])
-def read_papers( db: Session = Depends(get_db)):
+def read_papers(db: Session = Depends(get_db)):
+    """
+    Get all uploaded papers.
+    
+    This endpoint retrieves metadata for all papers stored in the database.
+    
+    Parameters:
+    - db: Database session dependency
+    
+    Returns:
+    - List[PaperResponse]: List of all papers' metadata
+    """
     papers = PaperService.get_all_papers(db)
     return papers
 
 @paper_router.get("/{paper_id}", response_model=PaperResponse)
 def read_paper(paper_id: int, db: Session = Depends(get_db)):
+    """
+    Get a specific paper by ID.
+    
+    This endpoint retrieves metadata for a single paper identified by its ID.
+    
+    Parameters:
+    - paper_id: ID of the paper to retrieve
+    - db: Database session dependency
+    
+    Returns:
+    - PaperResponse: The paper's metadata
+    
+    Raises:
+    - HTTPException(404): If the paper is not found
+    """
     db_paper = PaperService.get_paper(db, paper_id=paper_id)
     if db_paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
