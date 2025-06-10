@@ -99,13 +99,24 @@ def view_pdf(paper_id: int, db: Session = Depends(get_db)):
     
     Raises:
     - HTTPException(404): If the paper is not found
+    - HTTPException(500): If there's an error retrieving or serving the file
     """
-    paper = PaperService.get_paper(db, paper_id=paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
-    
-    # Return the file for viewing
-    return FileResponse(paper.file_path)
+    try:
+        paper = PaperService.get_paper(db, paper_id=paper_id)
+        if not paper:
+            raise HTTPException(status_code=404, detail="Paper not found")
+        
+        # Check if file exists
+        if not os.path.exists(paper.file_path):
+            logger.error(f"PDF file not found at path: {paper.file_path}")
+            raise HTTPException(status_code=404, detail="PDF file not found on server")
+        
+        return FileResponse(paper.file_path)
+
+    except Exception as e:
+        logger.error(f"Error serving PDF for paper ID {paper_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving PDF file: {str(e)}")
+
 
 @paper_router.get("/get_all_papers", response_model=List[PaperResponse])
 def read_papers(db: Session = Depends(get_db)):
@@ -119,9 +130,17 @@ def read_papers(db: Session = Depends(get_db)):
     
     Returns:
     - List[PaperResponse]: List of all papers' metadata
+    
+    Raises:
+    - HTTPException(500): If there's an error retrieving papers
     """
-    papers = PaperService.get_all_papers(db)
-    return papers
+    try:
+        papers = PaperService.get_all_papers(db)
+        return papers
+        
+    except Exception as e:
+        logger.error(f"Error retrieving papers: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving papers: {str(e)}")
 
 @paper_router.get("/{paper_id}", response_model=PaperResponse)
 def read_paper(paper_id: int, db: Session = Depends(get_db)):
@@ -139,8 +158,16 @@ def read_paper(paper_id: int, db: Session = Depends(get_db)):
     
     Raises:
     - HTTPException(404): If the paper is not found
+    - HTTPException(500): If there's an error retrieving the paper
     """
-    db_paper = PaperService.get_paper(db, paper_id=paper_id)
-    if db_paper is None:
-        raise HTTPException(status_code=404, detail="Paper not found")
-    return db_paper
+    try:
+        db_paper = PaperService.get_paper(db, paper_id=paper_id)
+
+        if db_paper is None:
+            raise HTTPException(status_code=404, detail="Paper not found")
+        
+        return db_paper
+    
+    except Exception as e:
+        logger.error(f"Error retrieving paper with ID {paper_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving paper: {str(e)}")
