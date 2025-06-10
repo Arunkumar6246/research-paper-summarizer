@@ -118,46 +118,21 @@ class LLMResponder:
         # Extract content by page
         page_contents = LLMResponder.extract_text_content_by_page(pdf_path)
         
-        # Start a chat session without system message
-        chat = model.start_chat()
+        # Combine all pages into a single document with page markers
+        full_document = ""
+        for page_num in sorted(page_contents.keys()):
+            full_document += f"\n\n--- PAGE {page_num} ---\n\n"
+            full_document += page_contents[page_num]
         
-        # First message includes instructions that would normally be in system message
-        initial_prompt = """I want you to act as a research paper summarizer. Your task is to identify section titles and 
-        create concise 2-line summaries for each section. Focus on main points and key findings. 
-        Wait for all content before providing the final summary in JSON format.
+        logger.info(f"Sending complete document for summarization")
         
-        I'll send you the research paper page by page. Please acknowledge this instruction."""
-        
-        # Send initial instructions
-        chat.send_message(initial_prompt)
-        
-        # Process all pages except the last one
-        page_nums = sorted(page_contents.keys())
-        for page_num in page_nums[:-1]:
-            logger.info(f"Processing page {page_num}...") 
-            content = page_contents[page_num]
-            prompt = f"""Page {page_num} content:
-            
-            {content}
-            
-            Please process this content, identify any section titles, and prepare summaries.
-            Do not provide any detailed analysis yet. Simply acknowledge that you're analyzing 
-            this page with a brief message like "Analyzing page {page_num}. Continuing to process content."
-            Wait for all pages before providing the final JSON output."""
-            
-            # Send message and get response (but don't use it yet)
-            res = chat.send_message(prompt)
-            logger.info(f"Page {page_num} processed. Response:{res.text}")
+        # Create a single prompt with all content
+        prompt = f"""I want you to act as a research paper summarizer. Your task is to identify section titles and 
+        create concise 2-line summaries for each section from the following research paper. Focus on the main points and key findings.
 
-        # Process the last page and request final summary
-        last_page_num = page_nums[-1]
-        last_page_content = page_contents[last_page_num]
-        
-        final_prompt = f"""Page {last_page_num} content (final page):
-        
-        {last_page_content}
-        
-        This is the last page. Now please provide a summary of the entire research paper.
+        {full_document}
+
+        Please analyze the entire document and provide a summary of the research paper.
         Identify all section titles, their page numbers, and provide a 2-line summary for each section.
         Format your response as a JSON array with objects containing "Section Title", "Summary", and "page_no" fields.
         IMPORTANT: Provide ONLY the JSON array without any markdown formatting, explanation, or code blocks.
@@ -171,42 +146,54 @@ class LLMResponder:
             ...
         ]"""
         
-        # Get final response
-        response = chat.send_message(final_prompt)
+        # Send the prompt and get the response
+        response = model.generate_content(prompt)
         response_text = response.text
+        print("response_text-----",response_text)
         
         # Try to parse JSON from the response using our robust extraction function
         summary = LLMResponder.extract_json_from_text(response_text)
+        print("summary-----",summary)
         
         # If all extraction methods fail, return the error with raw response
         if summary is None:
             summary = {"error": "Could not extract JSON from response", "raw_response": response_text}
         
         return summary
-    
+
     @staticmethod
-    def process_paper_sections(db: Session, paper_id: int, file_path: str):
+    async def process_paper_sections(db: Session, paper_id: int, file_path: str):
+        """
+        Process the paper sections and save them to the database.
+        This function is called after the paper is uploaded and processed.
+        Returns a streaming response of summaries as they're generated.
+        
+        Parameters:
+        - db: Database session
+        - paper_id: ID of the paper to process
+        - file_path: Path to the PDF file
+        
+        Yields:
+        - JSON strings with status updates and section summaries
+        """
         try:
-            """ 
-            Process the paper sections and save them to the database.
-            This function is called after the paper is uploaded and processed.
-            
-            """
             logger.info(f"Starting processing for paper ID: {paper_id}")
+            
+            # Yield initial status
+            yield json.dumps({"status": "processing", "message": "Starting paper processing"})
             
             summaries = LLMResponder.summarize_research_paper(file_path)
             
             # Check if we got valid summaries
             if isinstance(summaries, list):
+                yield json.dumps({"status": "processing", "message": f"Found {len(summaries)} sections"})
                 
                 # Save each section summary
-                for section in summaries:
+                for i, section in enumerate(summaries):
                     try:
                         section_title = section.get("Section Title", "Untitled Section")
                         summary_text = section.get("Summary", "")
                         page = section.get("page_no", 1)
-                        
-                        
                         
                         # Save the section summary
                         SummaryService.save_summary(
@@ -216,11 +203,34 @@ class LLMResponder:
                             summary_text=summary_text,
                             page=page
                         )
+                        
+                        # Yield progress update
+                        progress = int((i + 1) / len(summaries) * 100)
+                        yield json.dumps({
+                            "status": "saving", 
+                            "message": f"Saved summary for {section_title}",
+                            "progress": progress,
+                            "section": {
+                                "title": section_title,
+                                "summary": summary_text,
+                                "page": page
+                            }
+                        })
+                        
                     except Exception as e:
                         logger.error(f"Error saving section {section_title}: {str(e)}")
+                        yield json.dumps({"status": "error", "message": f"Error saving section {section_title}: {str(e)}"})
+                
+                # Yield completion message
+                yield json.dumps({"status": "complete", "message": "All summaries processed successfully"})
             else:
-                logger.error(f"Failed to generate summaries: {summaries}")
+                error_msg = f"Failed to generate summaries: {summaries}"
+                logger.error(error_msg)
+                yield json.dumps({"status": "error", "message": error_msg})
                 
             logger.info(f"Completed processing for paper ID: {paper_id}")
         except Exception as e:
-            logger.error(f"Error in process_paper_sections for paper ID {paper_id}: {str(e)}")
+            error_msg = f"Error in process_paper_sections for paper ID {paper_id}: {str(e)}"
+            logger.error(error_msg)
+            yield json.dumps({"status": "error", "message": error_msg})
+

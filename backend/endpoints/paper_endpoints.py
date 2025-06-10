@@ -10,6 +10,7 @@ from typing import List
 from services.llm_responder_service import LLMResponder
 from pydantic import BaseModel
 from datetime import datetime
+from fastapi.responses import StreamingResponse
 
 
 
@@ -46,7 +47,7 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
     Upload a PDF research paper.
     
     This endpoint accepts a PDF file, saves it to the server, stores its metadata in the database,
-    and initiates the process of extracting sections and generating summaries.
+    and returns the paper metadata. Processing happens separately.
     
     Parameters:
     - file: The PDF file to upload
@@ -56,7 +57,7 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
     - PaperResponse: The saved paper's metadata
     
     Raises:
-    - HTTPException(500): If there's an error during upload or processing
+    - HTTPException(500): If there's an error during upload
     """
     try:
         logger.info(f"Uploading file: {file.filename}")
@@ -69,19 +70,56 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
         with open(file_path, "wb") as buffer:
             buffer.write(file.file.read())
         
-        
         # Save paper to database
         paper = PaperService.save_paper(db, file_path, file.filename)
         logger.info(f"Paper saved to database with ID: {paper.id}")
-        
-        # Process sections and generate summaries
-        LLMResponder.process_paper_sections(db, paper.id, file_path)
         
         return paper
     except Exception as e:
         logger.error(f"Error uploading file {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+@paper_router.get("/{paper_id}/process")
+async def process_paper(paper_id: int, db: Session = Depends(get_db)):
+    """
+    Process a paper and return streaming updates.
     
+    This endpoint processes a paper and streams back updates as sections are summarized.
+    
+    Parameters:
+    - paper_id: ID of the paper to process
+    - db: Database session dependency
+    
+    Returns:
+    - StreamingResponse: A stream of JSON updates about the processing progress
+    
+    Raises:
+    - HTTPException(404): If the paper is not found
+    - HTTPException(500): If there's an error during processing
+    """
+    try:
+        paper = PaperService.get_paper(db, paper_id=paper_id)
+        if not paper:
+            raise HTTPException(status_code=404, detail="Paper not found")
+        
+        # Check if file exists
+        if not os.path.exists(paper.file_path):
+            logger.error(f"PDF file not found at path: {paper.file_path}")
+            raise HTTPException(status_code=404, detail="PDF file not found on server")
+        
+        async def stream_response():
+            async for update in LLMResponder.process_paper_sections(db, paper.id, paper.file_path):
+                yield update + "\n"
+        
+        return StreamingResponse(
+            stream_response(),
+            media_type="application/x-ndjson"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error processing paper ID {paper_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing paper: {str(e)}")
+
 @paper_router.get("/{paper_id}/view")
 def view_pdf(paper_id: int, db: Session = Depends(get_db)):
     """
