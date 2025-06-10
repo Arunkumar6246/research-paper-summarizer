@@ -149,9 +149,11 @@ class LLMResponder:
         # Send the prompt and get the response
         response = model.generate_content(prompt)
         response_text = response.text
+        print("response_text-----",response_text)
         
         # Try to parse JSON from the response using our robust extraction function
         summary = LLMResponder.extract_json_from_text(response_text)
+        print("summary-----",summary)
         
         # If all extraction methods fail, return the error with raw response
         if summary is None:
@@ -160,28 +162,38 @@ class LLMResponder:
         return summary
 
     @staticmethod
-    def process_paper_sections(db: Session, paper_id: int, file_path: str):
+    async def process_paper_sections(db: Session, paper_id: int, file_path: str):
+        """
+        Process the paper sections and save them to the database.
+        This function is called after the paper is uploaded and processed.
+        Returns a streaming response of summaries as they're generated.
+        
+        Parameters:
+        - db: Database session
+        - paper_id: ID of the paper to process
+        - file_path: Path to the PDF file
+        
+        Yields:
+        - JSON strings with status updates and section summaries
+        """
         try:
-            """ 
-            Process the paper sections and save them to the database.
-            This function is called after the paper is uploaded and processed.
-            
-            """
             logger.info(f"Starting processing for paper ID: {paper_id}")
+            
+            # Yield initial status
+            yield json.dumps({"status": "processing", "message": "Starting paper processing"})
             
             summaries = LLMResponder.summarize_research_paper(file_path)
             
             # Check if we got valid summaries
             if isinstance(summaries, list):
+                yield json.dumps({"status": "processing", "message": f"Found {len(summaries)} sections"})
                 
                 # Save each section summary
-                for section in summaries:
+                for i, section in enumerate(summaries):
                     try:
                         section_title = section.get("Section Title", "Untitled Section")
                         summary_text = section.get("Summary", "")
                         page = section.get("page_no", 1)
-                        
-                        
                         
                         # Save the section summary
                         SummaryService.save_summary(
@@ -191,11 +203,34 @@ class LLMResponder:
                             summary_text=summary_text,
                             page=page
                         )
+                        
+                        # Yield progress update
+                        progress = int((i + 1) / len(summaries) * 100)
+                        yield json.dumps({
+                            "status": "saving", 
+                            "message": f"Saved summary for {section_title}",
+                            "progress": progress,
+                            "section": {
+                                "title": section_title,
+                                "summary": summary_text,
+                                "page": page
+                            }
+                        })
+                        
                     except Exception as e:
                         logger.error(f"Error saving section {section_title}: {str(e)}")
+                        yield json.dumps({"status": "error", "message": f"Error saving section {section_title}: {str(e)}"})
+                
+                # Yield completion message
+                yield json.dumps({"status": "complete", "message": "All summaries processed successfully"})
             else:
-                logger.error(f"Failed to generate summaries: {summaries}")
+                error_msg = f"Failed to generate summaries: {summaries}"
+                logger.error(error_msg)
+                yield json.dumps({"status": "error", "message": error_msg})
                 
             logger.info(f"Completed processing for paper ID: {paper_id}")
         except Exception as e:
-            logger.error(f"Error in process_paper_sections for paper ID {paper_id}: {str(e)}")
+            error_msg = f"Error in process_paper_sections for paper ID {paper_id}: {str(e)}"
+            logger.error(error_msg)
+            yield json.dumps({"status": "error", "message": error_msg})
+
