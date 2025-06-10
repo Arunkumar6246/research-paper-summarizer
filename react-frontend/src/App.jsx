@@ -9,6 +9,7 @@ function App() {
   const [papers, setPapers] = useState([]);
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [summaries, setSummaries] = useState([]);
+  const [notification, setNotification] = useState(null);
 
   const fetchPapers = async () => {
       try {
@@ -27,6 +28,16 @@ function App() {
     fetchPapers();
   }, []);
 
+  // Auto-hide notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   const handleUpload = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -40,9 +51,17 @@ function App() {
       if (response.ok) {
         const newPaper = await response.json();
         setPapers([...papers, newPaper]);
+        setNotification({
+          type: 'success',
+          message: `Successfully uploaded ${file.name}`
+        });
       }
     } catch (error) {
       console.error('Error uploading file:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to upload file'
+      });
     }
   };
 
@@ -62,7 +81,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-8 relative">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
           Research Paper Summarizer
@@ -85,8 +104,17 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg ${
+          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`}>
+          {notification.message}
+        </div>
+      )}
     </div>
-  );
+  );  
 }
 
 export default App;

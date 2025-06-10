@@ -1,23 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 function PdfList({ papers, onSelect, selectedPaper }) {
-  const [hoveredPaper, setHoveredPaper] = useState(null);
-
   // Auto-select first paper if papers exist and none is selected
   useEffect(() => {
     if (papers.length > 0 && !selectedPaper) {
       onSelect(papers[0]);
     }
   }, [papers, onSelect, selectedPaper]);
-
-  // Format filename to show truncated version with extension
-  const formatFilename = (filename) => {
-    if (filename.length <= 15) return filename;
-    
-    const extension = filename.split('.').pop();
-    const name = filename.substring(0, filename.length - extension.length - 1);
-    return `${name.substring(0, 10)}...${extension}`;
-  };
 
   // Format date to a readable string
   const formatDate = (dateString) => {
@@ -34,8 +23,6 @@ function PdfList({ papers, onSelect, selectedPaper }) {
             <div
               key={paper.id}
               onClick={() => onSelect(paper)}
-              onMouseEnter={() => setHoveredPaper(paper.id)}
-              onMouseLeave={() => setHoveredPaper(null)}
               className={`flex-shrink-0 w-40 cursor-pointer p-4 rounded-lg ${
                 selectedPaper?.id === paper.id
                   ? "bg-blue-100 border-2 border-blue-500"
@@ -54,19 +41,13 @@ function PdfList({ papers, onSelect, selectedPaper }) {
                   />
                 </svg>
               </div>
-              <div className="relative">
-                <p className="text-sm font-medium text-center w-full">
-                  {formatFilename(paper.filename)}
+              <div>
+                <p className="text-xs font-medium text-center w-full break-words">
+                  {paper.filename}
                 </p>
                 <p className="text-xs text-gray-500 text-center mt-1">
                   {paper.upload_date ? formatDate(paper.upload_date) : "No date"}
                 </p>
-                {hoveredPaper === paper.id && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10">
-                    {paper.filename}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-                  </div>
-                )}
               </div>
             </div>
           ))
