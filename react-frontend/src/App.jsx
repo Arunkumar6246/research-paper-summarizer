@@ -13,6 +13,7 @@ function App() {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingMessage, setProcessingMessage] = useState('');
   const [isNewUpload, setIsNewUpload] = useState(false);
+  const [processingPaperId, setProcessingPaperId] = useState(null);
   const summaryTableRef = useRef(null);
 
   const fetchPapers = async () => {
@@ -60,6 +61,7 @@ function App() {
         setProcessingMessage(`Successfully uploaded ${file.name}`);
         setIsNewUpload(true); // Flag that this is a new upload
         setSummaries([]); // Clear any existing summaries
+        setProcessingPaperId(newPaper.id); // Track which paper is being processed
         
         // Start streaming process for the new paper
         processNewPaper(newPaper);
@@ -118,11 +120,13 @@ function App() {
                 setIsProcessing(false);
                 setProcessingMessage('Paper processing complete');
                 setIsNewUpload(false); // Reset the new upload flag
+                setProcessingPaperId(null); // Clear processing paper ID
               }, 2000);
             } else if (update.status === 'error') {
               setIsProcessing(false);
               setProcessingMessage(update.message || 'Error processing paper');
               setIsNewUpload(false);
+              setProcessingPaperId(null); // Clear processing paper ID
             }
           } catch (e) {
             console.error('Error parsing update:', e);
@@ -134,17 +138,18 @@ function App() {
       setIsProcessing(false);
       setProcessingMessage('Failed to process paper');
       setIsNewUpload(false);
+      setProcessingPaperId(null); // Clear processing paper ID
     }
   };
 
   const handleSelectPaper = async (paper) => {
-    // Don't do anything if we're already processing this paper
-    if (isProcessing && selectedPaper?.id === paper.id) {
-      return;
-    }
-    
     setSelectedPaper(paper);
     setIsNewUpload(false);
+    
+    // Skip fetching summaries if this paper is currently being processed
+    if (processingPaperId === paper.id) {
+      return;
+    }
     
     try {
       const response = await fetch(`${API_URL}/summary/paper/${paper.id}`);
