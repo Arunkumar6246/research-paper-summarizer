@@ -75,8 +75,12 @@ The application is built using a modern tech stack:
    ```bash
    npm install
    ```
+3.Create a .env file with the following variables:
+   ```bash
+   REACT_APP_API_URL=http://localhost:8000/api
+   ```
 
-3. Start the development server:
+4. Start the development server:
    ```bash
    npm start
    ```
