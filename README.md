@@ -130,24 +130,4 @@ The application will be available at http://localhost:3000
    - Maintains relationships between papers and their sections
    - Uses SQLite for simplicity and portability
 
-## Limitations and Future Improvements
 
-1. **Current Limitations**:
-   - Single-file processing at a time
-   - Limited to text-based content
-   - Requires manual refresh for updates
-
-2. **Planned Improvements**:
-   - Batch processing support
-   - Image and table analysis
-   - Real-time progress updates
-   - Export functionality
-   - Advanced search capabilities
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
