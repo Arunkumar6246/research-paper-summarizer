@@ -23,20 +23,7 @@ summary_router = APIRouter()
 def get_paper_summaries(paper_id: int, db: Session = Depends(get_db)):
     """
     Get all summaries for a specific paper.
-    
     This endpoint retrieves all section summaries generated for a paper identified by its ID.
-    
-    Parameters:
-    - paper_id: ID of the paper to get summaries for
-    - db: Database session dependency
-    
-    Returns:
-    - List[dict]: List of summaries containing section titles, summary texts, and page numbers
-    
-    Raises:
-    - HTTPException(400): If the paper ID is invalid
-    - HTTPException(404): If no summaries are found for the paper
-    - HTTPException(500): If there's an error retrieving the summaries
     """
     try:
         summaries = SummaryService.get_paper_summaries(db, paper_id)

@@ -149,11 +149,9 @@ class LLMResponder:
         # Send the prompt and get the response
         response = model.generate_content(prompt)
         response_text = response.text
-        print("response_text-----",response_text)
         
         # Try to parse JSON from the response using our robust extraction function
         summary = LLMResponder.extract_json_from_text(response_text)
-        print("summary-----",summary)
         
         # If all extraction methods fail, return the error with raw response
         if summary is None:
@@ -168,16 +166,10 @@ class LLMResponder:
         This function is called after the paper is uploaded and processed.
         Returns a streaming response of summaries as they're generated.
         
-        Parameters:
-        - db: Database session
-        - paper_id: ID of the paper to process
-        - file_path: Path to the PDF file
-        
         Yields:
         - JSON strings with status updates and section summaries
         """
         try:
-            logger.info(f"Starting processing for paper ID: {paper_id}")
             
             # Yield initial status
             yield json.dumps({"status": "processing", "message": "Starting paper processing"})

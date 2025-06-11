@@ -48,19 +48,9 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
     
     This endpoint accepts a PDF file, saves it to the server, stores its metadata in the database,
     and returns the paper metadata. Processing happens separately.
-    
-    Parameters:
-    - file: The PDF file to upload
-    - db: Database session dependency
-    
-    Returns:
-    - PaperResponse: The saved paper's metadata
-    
-    Raises:
-    - HTTPException(500): If there's an error during upload
+
     """
     try:
-        logger.info(f"Uploading file: {file.filename}")
         
         # Save the uploaded file
         upload_dir = "uploads"
@@ -83,19 +73,7 @@ def upload_paper(file: UploadFile = File(...), db: Session = Depends(get_db)):
 async def process_paper(paper_id: int, db: Session = Depends(get_db)):
     """
     Process a paper and return streaming updates.
-    
     This endpoint processes a paper and streams back updates as sections are summarized.
-    
-    Parameters:
-    - paper_id: ID of the paper to process
-    - db: Database session dependency
-    
-    Returns:
-    - StreamingResponse: A stream of JSON updates about the processing progress
-    
-    Raises:
-    - HTTPException(404): If the paper is not found
-    - HTTPException(500): If there's an error during processing
     """
     try:
         paper = PaperService.get_paper(db, paper_id=paper_id)
@@ -124,20 +102,9 @@ async def process_paper(paper_id: int, db: Session = Depends(get_db)):
 def view_pdf(paper_id: int, db: Session = Depends(get_db)):
     """
     Serve the PDF file for viewing.
-    
     This endpoint retrieves a PDF file from storage and serves it directly to the client
     for viewing in the browser.
-    
-    Parameters:
-    - paper_id: ID of the paper to view
-    - db: Database session dependency
-    
-    Returns:
-    - FileResponse: The PDF file for viewing
-    
-    Raises:
-    - HTTPException(404): If the paper is not found
-    - HTTPException(500): If there's an error retrieving or serving the file
+
     """
     try:
         paper = PaperService.get_paper(db, paper_id=paper_id)
@@ -162,15 +129,7 @@ def read_papers(db: Session = Depends(get_db)):
     Get all uploaded papers.
     
     This endpoint retrieves metadata for all papers stored in the database.
-    
-    Parameters:
-    - db: Database session dependency
-    
-    Returns:
-    - List[PaperResponse]: List of all papers' metadata
-    
-    Raises:
-    - HTTPException(500): If there's an error retrieving papers
+
     """
     try:
         papers = PaperService.get_all_papers(db)
@@ -186,17 +145,7 @@ def read_paper(paper_id: int, db: Session = Depends(get_db)):
     Get a specific paper by ID.
     
     This endpoint retrieves metadata for a single paper identified by its ID.
-    
-    Parameters:
-    - paper_id: ID of the paper to retrieve
-    - db: Database session dependency
-    
-    Returns:
-    - PaperResponse: The paper's metadata
-    
-    Raises:
-    - HTTPException(404): If the paper is not found
-    - HTTPException(500): If there's an error retrieving the paper
+
     """
     try:
         db_paper = PaperService.get_paper(db, paper_id=paper_id)

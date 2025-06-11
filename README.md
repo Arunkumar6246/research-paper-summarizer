@@ -2,6 +2,8 @@
 
 A full-stack application that automatically summarizes research papers using AI. The application processes PDF documents, extracts text content, and generates concise summaries for each section using Google's Gemini AI model.
 
+![Research Paper Summarizer Demo](research-paper-summarizer/research_paper_summarizer.gif)
+
 ## Features
 
 - PDF upload and processing
