@@ -10,8 +10,9 @@ function App() {
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [summaries, setSummaries] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [processingMessage, setProcessingMessage] = useState('');
+  const [streamingSections, setStreamingSections] = useState([]);
+  const [streamingTokens, setStreamingTokens] = useState('');
+  const [displayText, setDisplayText] = useState('');
   const [isNewUpload, setIsNewUpload] = useState(false);
   const [processingPaperId, setProcessingPaperId] = useState(null);
   const summaryTableRef = useRef(null);
@@ -58,26 +59,26 @@ function App() {
         const updatedPapers = [...papers, newPaper];
         setPapers(updatedPapers);
         setSelectedPaper(newPaper);
-        setProcessingMessage(`Successfully uploaded ${file.name}`);
-        setIsNewUpload(true); // Flag that this is a new upload
-        setSummaries([]); // Clear any existing summaries
-        setProcessingPaperId(newPaper.id); // Track which paper is being processed
+        setIsNewUpload(true);
+        setSummaries([]);
+        setProcessingPaperId(newPaper.id);
         
         // Start streaming process for the new paper
         processNewPaper(newPaper);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      setProcessingMessage('Failed to upload file');
+      console.error('Failed to upload file');
     }
   };
 
   const processNewPaper = async (paper) => {
     setIsProcessing(true);
-    setProcessingProgress(0);
+    setStreamingSections([]);
+    setStreamingTokens('');
+    setDisplayText('');
     
     try {
-      // Use fetch with streaming response
       const response = await fetch(`${API_URL}/paper/${paper.id}/process`);
       
       if (!response.ok) {
@@ -98,35 +99,48 @@ function App() {
           try {
             const update = JSON.parse(line);
             
-            if (update.status === 'saving' && update.section) {
-              // Update progress
-              setProcessingProgress(update.progress || 0);
-              setProcessingMessage(`Processing: ${update.section.title}`);
+            if (update.token) {
+              const filteredToken = filterStreamingToken(update.token);
               
-              // Add with delay for visual effect
-              setTimeout(() => {
-                setSummaries(prev => [...prev, {
-                  section_title: update.section.title,
-                  summary_text: update.section.summary,
-                  page: update.section.page
-                }]);
-              }, 2000); // Longer delay for better visual effect
+              setStreamingTokens(prev => {
+                const newTokens = prev + update.token;
+                const sections = parseTokensToSections(newTokens);
+                if (sections) {
+                  setStreamingSections(prevSections => {
+                    if (sections.length > prevSections.length) {
+                      setDisplayText('');
+                    }
+                    return sections;
+                  });
+                }
+                return newTokens;
+              });
               
-              // Wait a bit before processing the next update to create visual spacing
-              await new Promise(resolve => setTimeout(resolve, 500));
+              if (filteredToken) {
+                setDisplayText(prev => prev + filteredToken);
+              }
               
             } else if (update.status === 'complete') {
-              setTimeout(() => {
-                setIsProcessing(false);
-                setProcessingMessage('Paper processing complete');
-                setIsNewUpload(false); // Reset the new upload flag
-                setProcessingPaperId(null); // Clear processing paper ID
-              }, 2000);
+              setIsProcessing(false);
+              setIsNewUpload(false);
+              setProcessingPaperId(null);
+              // Fetch final summaries from database
+              const summaryResponse = await fetch(`${API_URL}/summary/paper/${paper.id}`);
+              if (summaryResponse.ok) {
+                const data = await summaryResponse.json();
+                setSummaries(data);
+              }
+              setStreamingSections([]);
+              setStreamingTokens('');
+              setDisplayText('');
+              
             } else if (update.status === 'error') {
               setIsProcessing(false);
-              setProcessingMessage(update.message || 'Error processing paper');
               setIsNewUpload(false);
-              setProcessingPaperId(null); // Clear processing paper ID
+              setProcessingPaperId(null);
+              setStreamingSections([]);
+              setStreamingTokens('');
+              setDisplayText('');
             }
           } catch (e) {
             console.error('Error parsing update:', e);
@@ -136,9 +150,84 @@ function App() {
     } catch (error) {
       console.error('Error processing paper:', error);
       setIsProcessing(false);
-      setProcessingMessage('Failed to process paper');
       setIsNewUpload(false);
-      setProcessingPaperId(null); // Clear processing paper ID
+      setProcessingPaperId(null);
+      setStreamingSections([]);
+      setStreamingTokens('');
+      setDisplayText('');
+    }
+  };
+
+  const filterStreamingToken = (token) => {
+    // Filter out JSON special characters and formatting
+    const specialChars = ['{', '}', '[', ']', '"', ':', ',', '\n', '\t'];
+    
+    // Skip tokens containing json, page_no, Section Title
+    const skipPatterns = ['json', 'page_no', 'Section Title', 'Summary'];
+    if (skipPatterns.some(pattern => token.includes(pattern))) {
+      return '';
+    }
+    
+    // If token is only special characters, return empty string
+    if (specialChars.some(char => token.includes(char)) && token.trim().length <= 3) {
+      return '';
+    }
+    
+    // Clean up the token but preserve meaningful text
+    return token.replace(/[{}\[\]"]/g, '');
+  };
+
+  const parseTokensToSections = (tokens) => {
+    try {
+      // Use the same logic as extract_json_from_text from backend
+      // Method 1: Extract from array brackets
+      let jsonStart = tokens.indexOf('[');
+      let jsonEnd = tokens.lastIndexOf(']');
+      
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        try {
+          const jsonStr = tokens.substring(jsonStart, jsonEnd + 1);
+          const parsed = JSON.parse(jsonStr);
+          return parsed.map(item => ({
+            title: item['Section Title'] || '',
+            summary: item['Summary'] || '',
+            page: item['page_no'] || 1
+          }));
+        } catch (e) {
+          // Continue to next method
+        }
+      }
+      
+      // Method 2: Extract partial objects using regex
+      const titleMatches = tokens.match(/"Section Title"\s*:\s*"([^"]*)"/g);
+      const summaryMatches = tokens.match(/"Summary"\s*:\s*"([^"]*)"/g);
+      
+      if (!titleMatches && !summaryMatches) return null;
+      
+      const titles = titleMatches ? titleMatches.map(match => {
+        const result = match.match(/"([^"]*)"/g);
+        return result ? result[1].replace(/"/g, '') : '';
+      }) : [];
+      
+      const summaries = summaryMatches ? summaryMatches.map(match => {
+        const result = match.match(/"([^"]*)"/g);
+        return result ? result[1].replace(/"/g, '') : '';
+      }) : [];
+      
+      const sections = [];
+      const maxSections = Math.max(titles.length, summaries.length);
+      
+      for (let i = 0; i < maxSections; i++) {
+        sections.push({
+          title: titles[i] || '',
+          summary: summaries[i] || '',
+          page: 1
+        });
+      }
+      
+      return sections.length > 0 ? sections : null;
+    } catch (e) {
+      return null;
     }
   };
 
@@ -184,8 +273,8 @@ function App() {
               summaries={summaries} 
               paperId={selectedPaper.id}
               isProcessing={isProcessing}
-              processingProgress={processingProgress}
-              processingMessage={processingMessage}
+              streamingSections={streamingSections}
+              displayText={displayText}
               isNewUpload={isNewUpload}
             />
           </div>

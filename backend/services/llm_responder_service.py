@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 import os
 import logging
 import json
+import time
 import re
 import pdfplumber
 import google.generativeai as genai
@@ -101,11 +102,12 @@ class LLMResponder:
         
         return None
 
+
     @staticmethod
-    def summarize_research_paper(pdf_path):
+    def summarize_research_paper_streaming(pdf_path):
         """
-        Summarize a research paper using Gemini AI.
-        Returns a list of section summaries with titles and page numbers.
+        Summarize a research paper using Gemini AI with streaming response.
+        Yields streaming text characters.
         """
         # Initialize Gemini model
         api_key = os.getenv("GEMINI_API_KEY")
@@ -126,7 +128,7 @@ class LLMResponder:
         
         logger.info(f"Sending complete document for summarization")
         
-        # Create a single prompt with all content
+        # Create prompt
         prompt = f"""I want you to act as a research paper summarizer. Your task is to identify section titles and 
         create concise 2-line summaries for each section from the following research paper. Focus on the main points and key findings.
 
@@ -146,83 +148,57 @@ class LLMResponder:
             ...
         ]"""
         
-        # Send the prompt and get the response
-        response = model.generate_content(prompt)
-        response_text = response.text
-        
-        # Try to parse JSON from the response using our robust extraction function
-        summary = LLMResponder.extract_json_from_text(response_text)
-        
-        # If all extraction methods fail, return the error with raw response
-        if summary is None:
-            summary = {"error": "Could not extract JSON from response", "raw_response": response_text}
-        
-        return summary
+        # Send the prompt and get streaming response
+        response = model.generate_content(prompt, stream=True)
+        # response : chunks of text as they're generated
+        # Apply character-by-character streaming logic with minimal delay
+
+        for chunk in response:
+            if chunk.text:
+                for char in chunk.text:
+                    yield char
+                    time.sleep(0.01)
 
     @staticmethod
     async def process_paper_sections(db: Session, paper_id: int, file_path: str):
         """
-        Process the paper sections and save them to the database.
-        This function is called after the paper is uploaded and processed.
-        Returns a streaming response of summaries as they're generated.
-        
-        Yields:
-        - JSON strings with status updates and section summaries
+        Process sections with token-by-token streaming using extract_json_from_text parsing logic.
         """
+        import asyncio
         try:
-            
-            # Yield initial status
             yield json.dumps({"status": "processing", "message": "Starting paper processing"})
             
-            summaries = LLMResponder.summarize_research_paper(file_path)
+            streaming_generator = LLMResponder.summarize_research_paper_streaming(file_path)
+            full_response_text = ""
             
-            # Check if we got valid summaries
+            for char in streaming_generator:
+                full_response_text += char
+                
+                # Stream all characters for visible effect
+                yield json.dumps({
+                    "status": "streaming_token",
+                    "token": char
+                })
+                # Minimal delay for faster streaming
+                await asyncio.sleep(0.005)
+            
+            # Final extraction and save to database
+            summaries = LLMResponder.extract_json_from_text(full_response_text)
+            
             if isinstance(summaries, list):
-                yield json.dumps({"status": "processing", "message": f"Found {len(summaries)} sections"})
+                for section in summaries:
+                    SummaryService.save_summary(
+                        session=db,
+                        paper_id=paper_id,
+                        section_title=section.get("Section Title", "Untitled Section"),
+                        summary_text=section.get("Summary", ""),
+                        page=section.get("page_no", 1)
+                    )
                 
-                # Save each section summary
-                for i, section in enumerate(summaries):
-                    try:
-                        section_title = section.get("Section Title", "Untitled Section")
-                        summary_text = section.get("Summary", "")
-                        page = section.get("page_no", 1)
-                        
-                        # Save the section summary
-                        SummaryService.save_summary(
-                            session=db,
-                            paper_id=paper_id,
-                            section_title=section_title,
-                            summary_text=summary_text,
-                            page=page
-                        )
-                        
-                        # Yield progress update
-                        progress = int((i + 1) / len(summaries) * 100)
-                        yield json.dumps({
-                            "status": "saving", 
-                            "message": f"Saved summary for {section_title}",
-                            "progress": progress,
-                            "section": {
-                                "title": section_title,
-                                "summary": summary_text,
-                                "page": page
-                            }
-                        })
-                        
-                    except Exception as e:
-                        logger.error(f"Error saving section {section_title}: {str(e)}")
-                        yield json.dumps({"status": "error", "message": f"Error saving section {section_title}: {str(e)}"})
-                
-                # Yield completion message
                 yield json.dumps({"status": "complete", "message": "All summaries processed successfully"})
             else:
-                error_msg = f"Failed to generate summaries: {summaries}"
-                logger.error(error_msg)
-                yield json.dumps({"status": "error", "message": error_msg})
+                yield json.dumps({"status": "error", "message": "Failed to generate summaries"})
                 
-            logger.info(f"Completed processing for paper ID: {paper_id}")
         except Exception as e:
-            error_msg = f"Error in process_paper_sections for paper ID {paper_id}: {str(e)}"
-            logger.error(error_msg)
-            yield json.dumps({"status": "error", "message": error_msg})
+            yield json.dumps({"status": "error", "message": str(e)})
 
